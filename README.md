@@ -1,16 +1,71 @@
-# pacman
+# Pac-Man Game v1.0
 
-A new Flutter project.
+A classic Pac-Man game built with Flutter.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This project is a Flutter implementation of the classic Pac-Man game. It features Pac-Man, ghosts, and various sound effects to enhance the gameplay experience.
 
-A few resources to get you started if this is your first Flutter project:
+### Prerequisites
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Before you begin, ensure you have met the following requirements:
+- You have installed the latest version of [Flutter](https://flutter.dev/docs/get-started/install).
+- You have a [Git](https://git-scm.com/) client installed on your machine.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Installation
+
+1. Clone the repository:
+
+    ```sh
+    git clone https://github.com/yourusername/pacman.git
+    ```
+
+2. Navigate to the project directory:
+
+    ```sh
+    cd pacman
+    ```
+
+3. Install the dependencies:
+
+    ```sh
+    flutter pub get
+    ```
+
+### Running the Game
+
+To run the game on an emulator or a connected device, use:
+
+```sh
+flutter run
+```
+
+## Features
+
+- **Classic Gameplay**: Navigate Pac-Man through the maze, avoiding ghosts, and eating snacks.
+- **Multiple Levels**: Increase in difficulty with each level.
+- **Sound Effects**: Enjoy classic Pac-Man sounds during gameplay.
+
+## Dependencies
+
+This project uses the following packages:
+
+- [audioplayers](https://pub.dev/packages/audioplayers): ^5.2.1
+- [google_fonts](https://pub.dev/packages/google_fonts): ^6.2.1
+- [path_provider](https://pub.dev/packages/path_provider): ^2.1.3
+
+## Contributing
+
+If you want to contribute to this project, follow these steps:
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Make your changes and commit them (`git commit -m 'Add some feature'`).
+4. Push to the branch (`git push origin feature-branch`).
+5. Create a new Pull Request.
+
+## Acknowledgements
+
+- [Flutter](https://flutter.dev/)
+- [Pac-Man](https://en.wikipedia.org/wiki/Pac-Man)
+

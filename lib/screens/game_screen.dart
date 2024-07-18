@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../constants/const.dart';
 import '../models/pac.dart';
 import '../models/pink_ghost.dart';
@@ -9,7 +11,6 @@ import '../models/red_ghost.dart';
 import '../models/yellow_ghost.dart';
 import '../widgets/path.dart';
 import '../widgets/pixel.dart';
-// import 'package:audioplayers/audioplayers.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -30,13 +31,13 @@ class _GameScreenState extends State<GameScreen> {
   bool mouthClosed = false;
   int score = 0;
   bool paused = false;
+  int level = 1;
+  List<int> extraGhosts = [];
+  List<String> extraGhostDirections = [];
+  List<Widget> extraGhostTypes = [];
 
-  // AudioPlayer advancedPlayer1 = AudioPlayer();
-  // AudioPlayer advancedPlayer2 = AudioPlayer();
-  // AudioCache audioInGame = AudioCache(prefix: 'assets/sounds/');
-  // AudioCache audioInMunch = AudioCache(prefix: 'assets/sounds/');
-  // AudioCache audioInDeath = AudioCache(prefix: 'assets/sounds/');
-  // AudioCache audioPaused = AudioCache(prefix: 'assets/sounds/');
+  late AudioPlayer _audioPlayer;
+  late AudioCache _audioCache;
 
   String direction = 'right';
   String ghostLast1 = 'left';
@@ -48,6 +49,7 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     eatSnack();
     super.initState();
+    _audioPlayer = AudioPlayer();
   }
 
   void eatSnack() {
@@ -58,23 +60,21 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  void startGame() {
+  Future<void> startGame() async {
     if (preGame) {
-      // advancedPlayer1 = new AudioPlayer();
-      // audioInGame = new AudioCache(fixedPlayer: advancedPlayer1);
-      // audioPaused = new AudioCache(fixedPlayer: advancedPlayer2);
-      // audioInGame.loop('pacman_beginning.wav');
+      await _audioPlayer.play(AssetSource('sounds/pacman_beginning.wav'));
       preGame = false;
       eatSnack();
 
       Timer.periodic(const Duration(milliseconds: 10), (timer) {
         if (paused) {
         } else {
-          // advancedPlayer1.resume();
         }
-        if (pac == red || pac == yellow || pac == pink) {
-          // advancedPlayer1.stop();
-          // audioInDeath.play('pacman_death.wav');
+        if (pac == red ||
+            pac == yellow ||
+            pac == pink ||
+            extraGhosts.contains(pac)) {
+          _audioPlayer.play(AssetSource('sounds/pacman_death.wav'));
           setState(() {
             pac = -1;
           });
@@ -82,51 +82,47 @@ class _GameScreenState extends State<GameScreen> {
               barrierDismissible: false,
               context: context,
               builder: (BuildContext context) {
-                return AlertDialog(
-                  backgroundColor: Colors.black,
-                  title: const Text(
-                    'Game Over!',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  content: Text(
-                    'Score: $score',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  actions: [
-                    GestureDetector(
-                      onTap: () {
-                        // audioInGame.loop('pacman_beginning.wav');
-                        setState(() {
-                          pac = numberInRow * 14 + 1;
-                          red = numberInRow * 2 - 2;
-                          yellow = numberInRow * 9 - 1;
-                          pink = numberInRow * 11 - 2;
-                          paused = false;
-                          preGame = false;
-                          mouthClosed = false;
-                          direction = 'right';
-                          snacks.clear();
-                          eatSnack();
-                          score = 0;
-                          Navigator.pop(context);
-                        });
-                      },
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.green, Colors.blue],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                return Container(
+                  child: AlertDialog(
+                    backgroundColor: Colors.black,
+                    title: Text(
+                      'Game Over!',
+                      style: GoogleFonts.sourceCodePro(
+                          color: Colors.white, fontSize: 28, letterSpacing: 2),
+                    ),
+                    content: Text(
+                      'Score: $score',
+                      style: GoogleFonts.sourceCodePro(
+                          color: Colors.white, letterSpacing: 1),
+                    ),
+                    actions: [
+                      GestureDetector(
+                        onTap: () {
+                          _audioPlayer.play(AssetSource('sounds/pacman_beginning.wav'));
+                          setState(() {
+                            resetGame();
+                            Navigator.pop(context);
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                                color: Colors.white,
+                                width: 1), // White border color
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.all(10),
+                          child: Text(
+                            'Play Again',
+                            style: GoogleFonts.sourceCodePro(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
-                        padding: const EdgeInsets.all(10),
-                        child: const Text(
-                          'Play Again',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    )
-                  ],
+                      )
+                    ],
+                  ),
                 );
               });
         }
@@ -136,6 +132,7 @@ class _GameScreenState extends State<GameScreen> {
           moveRed();
           movePink();
           moveYellow();
+          moveExtraGhosts();
         }
       });
       Timer.periodic(const Duration(milliseconds: 170), (timer) {
@@ -146,8 +143,11 @@ class _GameScreenState extends State<GameScreen> {
           // audioInMunch.play('pacman_munch.wav');
           setState(() {
             snacks.remove(pac);
+            score++;
           });
-          score++;
+          if (snacks.isEmpty) {
+            levelUp();
+          }
         }
 
         switch (direction) {
@@ -165,6 +165,66 @@ class _GameScreenState extends State<GameScreen> {
             break;
         }
       });
+    }
+  }
+
+  void resetGame() {
+    pac = numberInRow * 14 + 1;
+    red = numberInRow * 2 - 2;
+    yellow = numberInRow * 9 - 1;
+    pink = numberInRow * 11 - 2;
+    extraGhosts.clear();
+    extraGhostDirections.clear();
+    extraGhostTypes.clear();
+    paused = false;
+    preGame = false;
+    mouthClosed = false;
+    direction = 'right';
+    snacks.clear();
+    eatSnack();
+    score = 0;
+    level = 1;
+  }
+
+  void levelUp() {
+    setState(() {
+      level++;
+      eatSnack();
+      addExtraGhost();
+    });
+  }
+
+  void addExtraGhost() {
+    int newGhostPosition = numberInRow * (level + 1) - 1;
+    extraGhosts.add(newGhostPosition);
+    extraGhostDirections.add('left');
+
+    List<Widget> ghostTypes = [const Red(), const Yellow(), const Pink()];
+    Widget randomGhost = ghostTypes[random.nextInt(ghostTypes.length)];
+    extraGhostTypes.add(randomGhost);
+  }
+
+  void moveExtraGhosts() {
+    for (int i = 0; i < extraGhosts.length; i++) {
+      List<String> possibleDirections = getPossibleDirections(extraGhosts[i]);
+      if (possibleDirections.isNotEmpty) {
+        extraGhostDirections[i] =
+            possibleDirections[random.nextInt(possibleDirections.length)];
+        switch (extraGhostDirections[i]) {
+          case 'left':
+            setState(() => extraGhosts[i] -= 1);
+            break;
+          case 'right':
+            setState(() => extraGhosts[i] += 1);
+            break;
+          case 'up':
+            setState(() => extraGhosts[i] -= numberInRow);
+            break;
+          case 'down':
+            setState(() => extraGhosts[i] += numberInRow);
+            break;
+        }
+      }
     }
   }
 
@@ -341,12 +401,15 @@ class _GameScreenState extends State<GameScreen> {
                     return const Yellow();
                   } else if (pink == index) {
                     return const Pink();
+                  } else if (extraGhosts.contains(index)) {
+                    int ghostIndex = extraGhosts.indexOf(index);
+                    return extraGhostTypes[ghostIndex];
                   } else if (Constants.barriers.contains(index)) {
                     return Pixel(
                       innerColor: Colors.green[900],
                       outerColor: Colors.green[800],
                     );
-                  } else if (preGame && snacks.contains(index)) {
+                  } else if (snacks.contains(index)) {
                     return const MovePath(
                       innerColor: Colors.yellow,
                       outerColor: Colors.black,
@@ -364,47 +427,92 @@ class _GameScreenState extends State<GameScreen> {
           Expanded(
             flex:
                 1, // Adjusted flex to give space for the score and play button
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Text(
-                  'Score: $score',
-                  style: const TextStyle(color: Colors.white, fontSize: 20),
-                ),
-                GestureDetector(
-                  onTap: startGame,
-                  child: const Text(
-                    'P L A Y',
-                    style: TextStyle(color: Colors.white, fontSize: 20),
+            child: Container(
+              padding: const EdgeInsets.only(
+                  bottom: 10,
+                  right: 8,
+                  left: 8), // Add padding around the border
+              decoration: BoxDecoration(
+                border: Border.all(
+                    color: Colors.white, width: 2), // White border color
+                borderRadius:
+                    BorderRadius.circular(10), // Circular radius of 10
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Text(
+                        'L E V E L 0$level',
+                        style: GoogleFonts.sourceCodePro(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                ),
-                if (!paused)
-                  GestureDetector(
-                    child: const Icon(
-                      Icons.pause,
-                      color: Colors.white,
-                    ),
-                    onTap: () => {
-                      setState(() {
-                        paused = !paused;
-                      }),
-                    },
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Text(
+                        'SCORE : $score',
+                        style: GoogleFonts.sourceCodePro(
+                            color: Colors.white,
+                            fontSize: 12,
+                            letterSpacing: 1),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          if (preGame || paused) {
+                            startGame();
+                          } else {
+                            setState(() {
+                              paused = !paused;
+                            });
+                          }
+                        },
+                        child: Text(
+                          preGame || paused ? 'PLAY' : 'PAUSE',
+                          style: GoogleFonts.sourceCodePro(
+                            color: Colors.white,
+                            fontSize: 22,
+                            letterSpacing: 5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      if (!paused)
+                        GestureDetector(
+                          child: const Icon(
+                            Icons.pause,
+                            color: Colors.white,
+                          ),
+                          onTap: () => {
+                            setState(() {
+                              paused = !paused;
+                            }),
+                          },
+                        ),
+                      if (paused)
+                        GestureDetector(
+                            child: const Icon(
+                              Icons.play_arrow,
+                              color: Colors.white,
+                            ),
+                            onTap: () => {
+                                  setState(() {
+                                    paused = !paused;
+                                  }),
+                                }),
+                    ],
                   ),
-                if (paused)
-                  GestureDetector(
-                    child: const Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
-                    ),
-                    onTap: () => {
-                      setState(() {
-                        paused = !paused;
-                      }),
-                    },
-                  ),
-              ],
+                ],
+              ),
             ),
-          )
+          ),
         ],
       ),
     );
