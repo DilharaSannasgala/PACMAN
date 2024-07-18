@@ -54,16 +54,6 @@ This project uses the following packages:
 - [google_fonts](https://pub.dev/packages/google_fonts): ^6.2.1
 - [path_provider](https://pub.dev/packages/path_provider): ^2.1.3
 
-## Contributing
-
-If you want to contribute to this project, follow these steps:
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature-branch`).
-3. Make your changes and commit them (`git commit -m 'Add some feature'`).
-4. Push to the branch (`git push origin feature-branch`).
-5. Create a new Pull Request.
-
 ## Acknowledgements
 
 - [Flutter](https://flutter.dev/)
